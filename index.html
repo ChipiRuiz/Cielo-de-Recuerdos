@@ -43,6 +43,7 @@
   }
 
   #hint.hidden { opacity: 0; }
+  #firma:not(.hidden) #replay { pointer-events: auto; }
   #card { background: rgba(5, 5, 15, .55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); cursor: pointer; }
   .polaroid {
     background: #fbf7ef; color: #2b2233; padding: 14px 14px 18px; border-radius: 4px;
@@ -84,6 +85,7 @@
 <div id="firma" class="overlay hidden">
   <p>— Chipi 💛</p>
   <small>13 · 11</small>
+  <button class="btn" id="replay" style="margin-top:1.4rem;font-size:1rem;padding:.55rem 1.5rem">Ver de nuevo ✨</button>
 </div>
 
 <audio id="musica" loop></audio>
@@ -95,14 +97,14 @@
    - frase: el texto que aparece debajo
    ========================================================== */
 const RECUERDOS = [
-  { foto: "fotos/1.jpg", frase: "El día que nos conocimos y yo todavía no sabía que ibas a ser mi persona favorita." },
-  { foto: "fotos/2.jpg", frase: "Tu risa, que me arregla cualquier día." },
-  { foto: "fotos/3.jpg", frase: "Todas las veces que me bancaste en época de parciales." },
-  { foto: "fotos/4.jpg", frase: "Lo linda que te ponés cuando hablás de algo que te apasiona." },
-  { foto: "fotos/5.jpg", frase: "Nuestro primer viaje juntos." },
-  { foto: "fotos/6.jpg", frase: "Que seas mi equipo para todo." },
-  { foto: "fotos/7.jpg", frase: "Cada plan tonto que con vos se vuelve el mejor plan." },
-  { foto: "fotos/8.jpg", frase: "Que todavía nos quedan miles de estrellas por llenar." },
+  { foto: "fotos/1.jpg", frase: "Orgulloso de vos" },
+  { foto: "fotos/2.jpg", frase: "Muy chanchi de luz" },
+  { foto: "fotos/3.jpg", frase: "" },
+  { foto: "fotos/4.jpg", frase: "🏝️🇧🇷" },
+  { foto: "fotos/5.jpg", frase: "💛" },
+  { foto: "fotos/6.jpg", frase: "👩‍⚖️⚖️" },
+  { foto: "fotos/7.jpg", frase: "Mi lugar favorito: al lado tuyo." },
+  { foto: "fotos/8.jpg", frase: "Nosotros 🪞✨" },
 ];
 const TEXTO_FINAL = "Feliz cumple, te amo";
 const MUSICA = ""; // opcional: ej. "musica.mp3" (archivo en la misma carpeta)
@@ -160,7 +162,10 @@ function openCard(m) {
   img.style.display = r.foto ? 'block' : 'none';
   img.onerror = () => { img.style.display = 'none'; };
   if (r.foto) img.src = r.foto;
-  $('cardFrase').textContent = r.frase;
+  $('cardFrase').textContent = r.frase || '';
+  $('cardFrase').style.display = r.frase ? 'block' : 'none';
+  $('cardFrase').style.fontSize = (r.frase && !/\p{L}/u.test(r.frase)) ? '2.4rem' : '';
+  $('cardFrase').style.fontStyle = (r.frase && !/\p{L}/u.test(r.frase)) ? 'normal' : '';
   $('cardNum').textContent = `Recuerdo ${m.i + 1} de ${RECUERDOS.length}`;
   m.seen = true;
   $('card').classList.remove('hidden');
@@ -315,6 +320,20 @@ function frame(now) {
   ctx.globalCompositeOperation = 'source-over';
   requestAnimationFrame(frame);
 }
+
+/* ---------- repetir ---------- */
+function replay() {
+  $('firma').classList.add('hidden');
+  phase = 'reset';
+  setTimeout(() => {
+    particles = []; shooting = [];
+    stars.forEach(s => s.used = false);
+    initMemories();
+    phase = 'sky'; updateHint();
+    $('hint').classList.remove('hidden');
+  }, 900);
+}
+$('replay').onclick = replay;
 
 /* ---------- inicio ---------- */
 $('start').onclick = async () => {
