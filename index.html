@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>✨ Para Zo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: radial-gradient(ellipse at 50% 110%, #3a2350 0%, #1a1435 35%, #0b0b1f 70%, #05050f 100%);
+    color: #f6efe4; font-family: "Cormorant Garamond", Georgia, serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  canvas { position: fixed; inset: 0; display: block; cursor: pointer; }
+
+  .overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 2rem;
+    transition: opacity 1.2s ease;
+  }
+  .hidden { opacity: 0; pointer-events: none; }
+
+  #intro h1 { font-family: "Dancing Script", cursive; font-size: clamp(3rem, 12vw, 6rem); color: #ffe3b0;
+    text-shadow: 0 0 30px rgba(255, 200, 140, .5); }
+  #intro p { font-size: clamp(1.2rem, 4.5vw, 1.6rem); font-style: italic; margin: .6rem 0 2.4rem; opacity: .9; max-width: 28ch; }
+  .btn {
+    font-family: inherit; font-size: 1.2rem; letter-spacing: .08em; color: #fff3dd;
+    background: rgba(255, 220, 170, .08); border: 1px solid rgba(255, 220, 170, .45);
+    padding: .8rem 2rem; border-radius: 999px; cursor: pointer;
+    box-shadow: 0 0 24px rgba(255, 200, 140, .2); transition: background .3s, transform .2s;
+  }
+  .btn:hover { background: rgba(255, 220, 170, .18); }
+  .btn:active { transform: scale(.97); }
+
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: calc(1.6rem + env(safe-area-inset-bottom));
+    text-align: center; font-size: 1.15rem; font-style: italic; opacity: .85;
+    pointer-events: none; transition: opacity 1s; text-shadow: 0 0 10px #000;
+  }
+
+  #hint.hidden { opacity: 0; }
+  #card { background: rgba(5, 5, 15, .55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); cursor: pointer; }
+  .polaroid {
+    background: #fbf7ef; color: #2b2233; padding: 14px 14px 18px; border-radius: 4px;
+    width: min(84vw, 380px); box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 40px rgba(255, 210, 150, .15);
+    transform: rotate(-2deg) scale(.9); transition: transform .5s cubic-bezier(.2,1.4,.4,1); cursor: default;
+  }
+  #card:not(.hidden) .polaroid { transform: rotate(-2deg) scale(1); }
+  .polaroid img { width: 100%; max-height: 55vh; object-fit: cover; display: block; border-radius: 2px; background: #ddd; }
+  .polaroid .frase { font-size: clamp(1.2rem, 4.6vw, 1.45rem); line-height: 1.35; margin-top: 14px; font-style: italic; }
+  .polaroid .num { font-size: .95rem; opacity: .55; margin-top: 10px; letter-spacing: .06em; }
+  .polaroid .btn { margin-top: 14px; color: #5a3a52; border-color: rgba(90,58,82,.35); background: transparent; box-shadow: none; font-size: 1rem; padding: .5rem 1.4rem; }
+
+  #firma { justify-content: flex-end; padding-bottom: calc(14vh + env(safe-area-inset-bottom)); pointer-events: none; }
+  #firma p { font-size: clamp(1.3rem, 5vw, 1.9rem); font-style: italic; color: #ffe9c8; text-shadow: 0 0 14px rgba(0,0,0,.8); }
+  #firma small { display: block; margin-top: .4rem; font-size: 1rem; opacity: .7; letter-spacing: .12em; }
+</style>
+</head>
+<body>
+
+<canvas id="sky"></canvas>
+
+<div id="intro" class="overlay">
+  <h1>Zo,</h1>
+  <p>esta noche el cielo guardó algunas cosas para vos</p>
+  <button class="btn" id="start">Mirar el cielo ✨</button>
+</div>
+
+<div id="hint" class="hidden"></div>
+
+<div id="card" class="overlay hidden">
+  <div class="polaroid" id="polaroid">
+    <img id="cardImg" alt="">
+    <div class="frase" id="cardFrase"></div>
+    <div class="num" id="cardNum"></div>
+    <button class="btn" id="cardClose">Seguir mirando ✦</button>
+  </div>
+</div>
+
+<div id="firma" class="overlay hidden">
+  <p>— Chipi 💛</p>
+  <small>13 · 11</small>
+</div>
+
+<audio id="musica" loop></audio>
+
+<script>
+/* ==========================================================
+   ✏️  EDITÁ ACÁ
+   - foto: ruta a la imagen dentro de la carpeta "fotos" (o "" si no hay foto)
+   - frase: el texto que aparece debajo
+   ========================================================== */
+const RECUERDOS = [
+  { foto: "fotos/1.jpg", frase: "El día que nos conocimos y yo todavía no sabía que ibas a ser mi persona favorita." },
+  { foto: "fotos/2.jpg", frase: "Tu risa, que me arregla cualquier día." },
+  { foto: "fotos/3.jpg", frase: "Todas las veces que me bancaste en época de parciales." },
+  { foto: "fotos/4.jpg", frase: "Lo linda que te ponés cuando hablás de algo que te apasiona." },
+  { foto: "fotos/5.jpg", frase: "Nuestro primer viaje juntos." },
+  { foto: "fotos/6.jpg", frase: "Que seas mi equipo para todo." },
+  { foto: "fotos/7.jpg", frase: "Cada plan tonto que con vos se vuelve el mejor plan." },
+  { foto: "fotos/8.jpg", frase: "Que todavía nos quedan miles de estrellas por llenar." },
+];
+const TEXTO_FINAL = "Feliz cumple, te amo";
+const MUSICA = ""; // opcional: ej. "musica.mp3" (archivo en la misma carpeta)
+/* ========================================================== */
+
+const cv = document.getElementById('sky'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+let W, H, DPR, phase = 'intro';
+let stars = [], mem = [], particles = [], shooting = [], finalStart = 0;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (phase === 'final') buildParticles(true);
+}
+
+function initStars() {
+  const n = Math.max(260, Math.min(750, Math.round(W * H / 1700)));
+  stars = Array.from({ length: n }, () => ({
+    x: Math.random(), y: Math.random(), r: Math.pow(Math.random(), 2.2) * 1.5 + 0.3,
+    a: rnd(.35, 1), s: rnd(.5, 2.2), p: rnd(0, 6.28), used: false,
+  }));
+}
+
+function initMemories() {
+  const pts = [], minD = Math.min(W, H) * 0.17;
+  for (let i = 0; i < RECUERDOS.length; i++) {
+    let best = null;
+    for (let t = 0; t < 400; t++) {
+      const x = rnd(W * .1, W * .9), y = rnd(H * .1, H * .78);
+      if (pts.every(p => Math.hypot(p.x - x, p.y - y) > minD)) { best = { x, y }; break; }
+      if (!best) best = { x, y };
+    }
+    pts.push(best);
+  }
+  mem = pts.map((p, i) => ({ x: p.x / W, y: p.y / H, i, seen: false, p: rnd(0, 6.28) }));
+}
+
+function updateHint() {
+  const n = mem.filter(m => m.seen).length;
+  $('hint').textContent = n === 0 ? 'Tocá las estrellas que brillan más ✦'
+    : `${n} de ${mem.length} recuerdos ✦`;
+}
+
+/* ---------- carta ---------- */
+let openIdx = -1;
+function openCard(m) {
+  openIdx = m.i;
+  const r = RECUERDOS[m.i];
+  const img = $('cardImg');
+  img.style.display = r.foto ? 'block' : 'none';
+  img.onerror = () => { img.style.display = 'none'; };
+  if (r.foto) img.src = r.foto;
+  $('cardFrase').textContent = r.frase;
+  $('cardNum').textContent = `Recuerdo ${m.i + 1} de ${RECUERDOS.length}`;
+  m.seen = true;
+  $('card').classList.remove('hidden');
+  updateHint();
+}
+function closeCard() {
+  $('card').classList.add('hidden');
+  if (phase === 'sky' && mem.every(m => m.seen)) {
+    phase = 'waiting';
+    $('hint').textContent = 'Ahora mirá bien el cielo…';
+    setTimeout(startFinal, 1800);
+  }
+}
+$('cardClose').onclick = e => { e.stopPropagation(); closeCard(); };
+$('card').onclick = closeCard;
+$('polaroid').onclick = e => e.stopPropagation();
+
+cv.addEventListener('click', e => {
+  if (phase !== 'sky') return;
+  let hit = null, best = 40;
+  for (const m of mem) {
+    const d = Math.hypot(m.x * W - e.clientX, m.y * H - e.clientY);
+    if (d < best) { best = d; hit = m; }
+  }
+  if (hit) openCard(hit);
+});
+
+/* ---------- texto final con estrellas ---------- */
+function textPoints() {
+  const lines = W < 720 ? ['Feliz cumple,', 'te amo'] : [TEXTO_FINAL];
+  if (W < 720 && TEXTO_FINAL !== 'Feliz cumple, te amo') lines.splice(0, 2, ...splitHalf(TEXTO_FINAL));
+  const off = document.createElement('canvas'); off.width = W; off.height = H;
+  const o = off.getContext('2d');
+  o.font = '700 100px "Dancing Script", cursive';
+  const maxW = Math.max(...lines.map(l => o.measureText(l).width));
+  const fs = Math.min(100 * W * 0.86 / maxW, H * 0.42 / lines.length);
+  o.font = `700 ${fs}px "Dancing Script", cursive`;
+  o.fillStyle = '#fff'; o.textAlign = 'center'; o.textBaseline = 'middle';
+  const lh = fs * 1.1, top = H * 0.42 - (lines.length - 1) * lh / 2;
+  lines.forEach((l, i) => o.fillText(l, W / 2, top + i * lh));
+  const d = o.getImageData(0, 0, W, H).data;
+  let gap = Math.max(3, Math.round(fs / 24)), pts;
+  do {
+    pts = [];
+    for (let y = 0; y < H; y += gap) for (let x = (y / gap % 2) * gap / 2; x < W; x += gap)
+      if (d[(Math.floor(y) * W + Math.floor(x)) * 4 + 3] > 140) pts.push({ x, y });
+    gap++;
+  } while (pts.length > 1500);
+  return pts;
+}
+function splitHalf(t) {
+  const w = t.split(' '), h = Math.ceil(w.length / 2);
+  return [w.slice(0, h).join(' '), w.slice(h).join(' ')];
+}
+
+function buildParticles(instant) {
+  const pts = textPoints().sort(() => Math.random() - .5);
+  const pool = stars.map((s, i) => i).sort(() => Math.random() - .5);
+  stars.forEach(s => s.used = false);
+  particles = pts.map((p, k) => {
+    let sx, sy, fade = false;
+    if (k < mem.length) { sx = mem[k].x * W; sy = mem[k].y * H; }
+    else if (pool.length) { const s = stars[pool.pop()]; s.used = true; sx = s.x * W; sy = s.y * H; }
+    else { sx = rnd(0, W); sy = rnd(0, H); fade = true; }
+    const hue = Math.random();
+    return {
+      sx, sy, tx: p.x + rnd(-.6, .6), ty: p.y + rnd(-.6, .6), fade,
+      d: instant ? -9 : rnd(0, 1400), dur: rnd(2200, 3200),
+      cx: rnd(-80, 80), cy: rnd(-80, 80), r: rnd(.9, 1.7), p: rnd(0, 6.28),
+      col: hue < .55 ? [255, 236, 190] : hue < .85 ? [255, 196, 210] : [220, 225, 255],
+    };
+  });
+}
+
+function startFinal() {
+  phase = 'final';
+  $('hint').classList.add('hidden');
+  buildParticles(false);
+  finalStart = performance.now();
+  for (let i = 0; i < 4; i++) setTimeout(spawnShooting, 3800 + i * 700);
+  setTimeout(() => $('firma').classList.remove('hidden'), 5200);
+}
+
+/* ---------- estrellas fugaces ---------- */
+function spawnShooting() {
+  const fromLeft = Math.random() < .5;
+  shooting.push({
+    x: fromLeft ? rnd(-50, W * .5) : rnd(W * .5, W + 50), y: rnd(-30, H * .3),
+    vx: (fromLeft ? 1 : -1) * rnd(9, 14), vy: rnd(4, 7), life: 1,
+  });
+}
+
+/* ---------- dibujo ---------- */
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+function frame(now) {
+  const t = now / 1000;
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+
+  const dim = phase === 'final' ? Math.max(.35, 1 - (now - finalStart) / 3000) : 1;
+  for (const s of stars) {
+    if (s.used) continue;
+    const a = s.a * (.55 + .45 * Math.sin(t * s.s + s.p)) * dim;
+    ctx.fillStyle = `rgba(255,250,240,${a})`;
+    ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.283); ctx.fill();
+  }
+
+  if (phase === 'sky' || phase === 'waiting' || phase === 'intro') {
+    for (const m of mem) {
+      const x = m.x * W, y = m.y * H;
+      const pulse = m.seen ? .55 : .75 + .25 * Math.sin(t * 2.2 + m.p);
+      const R = (m.seen ? 16 : 26) * pulse;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+      const c = m.seen ? '255,200,215' : '255,225,170';
+      g.addColorStop(0, `rgba(${c},.95)`); g.addColorStop(.25, `rgba(${c},.35)`); g.addColorStop(1, `rgba(${c},0)`);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = `rgba(${c},${.55 * pulse})`; ctx.lineWidth = 1;
+      const L = R * 1.15;
+      ctx.beginPath(); ctx.moveTo(x - L, y); ctx.lineTo(x + L, y); ctx.moveTo(x, y - L); ctx.lineTo(x, y + L); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 6.283); ctx.fill();
+    }
+  }
+
+  if (phase === 'final') {
+    const el = now - finalStart;
+    for (const q of particles) {
+      const k = Math.min(1, Math.max(0, (el - q.d) / q.dur)), e = ease(k);
+      const bend = Math.sin(e * Math.PI);
+      const x = q.sx + (q.tx - q.sx) * e + q.cx * bend;
+      const y = q.sy + (q.ty - q.sy) * e + q.cy * bend;
+      let a = k >= 1 ? .7 + .3 * Math.sin(t * 2 + q.p) : .9;
+      if (q.fade) a *= e;
+      const [r, g, b] = q.col;
+      ctx.fillStyle = `rgba(${r},${g},${b},${a * .18})`;
+      ctx.beginPath(); ctx.arc(x, y, q.r * 3, 0, 6.283); ctx.fill();
+      ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+      ctx.beginPath(); ctx.arc(x, y, q.r, 0, 6.283); ctx.fill();
+    }
+    if (Math.random() < .004) spawnShooting();
+  } else if (Math.random() < .0025) spawnShooting();
+
+  for (const s of shooting) {
+    s.x += s.vx; s.y += s.vy; s.life -= .012;
+    const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * 9, s.y - s.vy * 9);
+    g.addColorStop(0, `rgba(255,245,225,${s.life})`); g.addColorStop(1, 'rgba(255,245,225,0)');
+    ctx.strokeStyle = g; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 9, s.y - s.vy * 9); ctx.stroke();
+  }
+  shooting = shooting.filter(s => s.life > 0);
+
+  ctx.globalCompositeOperation = 'source-over';
+  requestAnimationFrame(frame);
+}
+
+/* ---------- inicio ---------- */
+$('start').onclick = async () => {
+  if (MUSICA) { const a = $('musica'); a.src = MUSICA; a.volume = .6; a.play().catch(() => {}); }
+  try { await document.fonts.load('700 60px "Dancing Script"'); } catch (e) {}
+  $('intro').classList.add('hidden');
+  setTimeout(() => { phase = 'sky'; updateHint(); $('hint').classList.remove('hidden'); }, 900);
+};
+
+resize(); initStars(); initMemories();
+addEventListener('resize', resize);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
