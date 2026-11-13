@@ -161,6 +161,9 @@ function openCard(m) {
   const img = $('cardImg');
   img.style.display = r.foto ? 'block' : 'none';
   img.onerror = () => { img.style.display = 'none'; };
+  img.style.visibility = 'hidden';
+  img.removeAttribute('src');
+  img.onload = () => { img.style.visibility = 'visible'; };
   if (r.foto) img.src = r.foto;
   $('cardFrase').textContent = r.frase || '';
   $('cardFrase').style.display = r.frase ? 'block' : 'none';
@@ -336,6 +339,9 @@ function replay() {
 $('replay').onclick = replay;
 
 /* ---------- inicio ---------- */
+// precargar todas las fotos para que aparezcan al instante
+const PRECARGA = RECUERDOS.filter(r => r.foto).map(r => { const i = new Image(); i.src = r.foto; return i; });
+
 $('start').onclick = async () => {
   if (MUSICA) { const a = $('musica'); a.src = MUSICA; a.volume = .6; a.play().catch(() => {}); }
   try { await document.fonts.load('700 60px "Dancing Script"'); } catch (e) {}
